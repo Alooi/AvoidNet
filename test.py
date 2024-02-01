@@ -4,22 +4,22 @@ from torchvision import transforms
 from torchvision.models.segmentation import lraspp_mobilenet_v3_large
 from torch import nn, optim
 import matplotlib.pyplot as plt
-from dataset import SUIM
+from dataset import SUIM, SUIM_grayscale
 import time
 from avoid_net import get_model
 import argparse
 
 
-def test(batch_size, num_avg, arc, run_name, use_gpu=True):
+def test(batch_size, num_avg, arc, run_name, use_gpu=False):
 
     model = get_model(arc)
     model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
 
     # Prepare your own dataset
-    dataset = SUIM("/media/ali/New Volume/Datasets/TEST")
+    dataset = SUIM_grayscale("/media/ali/New Volume/Datasets/TEST")
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
     print(f"Testing on: {device}")
     model.to(device)
     model.eval()
@@ -42,6 +42,8 @@ def test(batch_size, num_avg, arc, run_name, use_gpu=True):
     # move the output tensors to cpu for visualization
     outputs = outputs.detach().cpu()
     images = images.cpu()
+    print(outputs)
+    print("outputs shape ", outputs.shape)
 
     # denormalize the images and masks
     images = images * torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_average",
         type=int,
-        default=10,
+        default=100,
         help="Number of average runs for speed calculation",
     )
     parser.add_argument(

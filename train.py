@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from torch import nn, optim
-from dataset import SUIM
+from dataset import SUIM, SUIM_grayscale
 import argparse
 from avoid_net import get_model
 
@@ -11,7 +11,7 @@ def progress_bar(curr_epoch, loss, num_epochs, data_len, batch_size, bar_length)
     arrow = "-" * int(percent / 100 * bar_length - 1) + ">"
     spaces = " " * (bar_length - len(arrow))
     print(
-        f"Epoch: [{epoch + 1}/{num_epochs}], Loss: {loss:.4f}, Progress: [{arrow + spaces}] {percent:.2f} %",
+        f"Epoch: [{curr_epoch + 1}/{num_epochs}], Loss: {loss:.4f}, Progress: [{arrow + spaces}] {percent:.2f} %",
         end="\r",
     )
 
@@ -24,7 +24,7 @@ def train_model(batch_size, num_epochs, arc, run_name):
     model = get_model(arc)
 
     # Prepare your own dataset
-    dataset = SUIM("/media/ali/New Volume/Datasets/train_val")
+    dataset = SUIM_grayscale("/media/ali/New Volume/Datasets/train_val")
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     # Define the loss function and the optimizer for segmentation

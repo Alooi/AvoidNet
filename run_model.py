@@ -4,20 +4,21 @@ import time
 from avoid_net import get_model
 import argparse
 import torch
-from dataset import SUIM
+from dataset import SUIM, SUIM_grayscale
 from PIL import Image
 import numpy as np
+from draw_obsticle import draw_red_squares
 
 
-def run_model(arc, run_name, source, video_path=None):
+def run_model(arc, run_name, source, video_path=None, use_gpu=False):
     model = get_model(arc)
     model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
     print(f"Running on: {device}...")
     model.to(device).eval()
 
-    dataset = SUIM("/media/ali/New Volume/Datasets/TEST")
+    dataset = SUIM_grayscale("/media/ali/New Volume/Datasets/TEST")
     image_transform = dataset.get_transform()
     mask_transform = dataset.get_mask_transform()
 
@@ -36,16 +37,17 @@ def run_model(arc, run_name, source, video_path=None):
         frame_tensor = Image.fromarray(frame)
         frame_tensor = image_transform(frame_tensor).to(device).unsqueeze(0)
         outputs = model(frame_tensor)
-        print(outputs)
+
         # move the output tensors to cpu for visualization
-        outputs = outputs.detach().cpu().squeeze(0)
-        outputs = outputs.permute(1, 2, 0)
+        outputs = outputs.detach().cpu()
+        outputs = outputs[0].permute(1, 2, 0)
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
+        frame = draw_red_squares(frame, outputs, 0.5)
         cv2.imshow("frame", frame)
-        heatmap = cv2.applyColorMap(np.uint8(outputs * 255), cv2.COLORMAP_JET)
-        heatmap = cv2.resize(heatmap, (frame.shape[1], frame.shape[0]))
-        cv2.imshow("heatmap", heatmap)
+        # heatmap = cv2.applyColorMap(np.uint8(outputs * 255), cv2.COLORMAP_INFERNO)
+        # heatmap = cv2.resize(heatmap, (frame.shape[1], frame.shape[0]))
+        # cv2.imshow("heatmap", heatmap)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
@@ -75,6 +77,12 @@ if __name__ == "__main__":
         type=str,
         default="",
         help="Path to the video to be used for inference",
+    )
+    parser.add_argument(
+        "--use_gpu",
+        type=bool,
+        default=False,
+        help="Use GPU for inference",
     )
     args = parser.parse_args()
 

@@ -10,7 +10,7 @@ import numpy as np
 from draw_obsticle import draw_red_squares
 
 
-def run_model(arc, run_name, source, video_path=None, use_gpu=False):
+def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=False):
     model = get_model(arc)
     model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
 
@@ -27,6 +27,11 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False):
         cap = cv2.VideoCapture(0)
     elif source == "video":
         cap = cv2.VideoCapture(video_path)
+        
+    if save_video:
+        out = cv2.VideoWriter(
+            "results/output.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (640, 480)
+        )
 
     while True:
         # Capture frame-by-frame
@@ -44,12 +49,14 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False):
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
         frame = draw_red_squares(frame, outputs, 0.5)
-        cv2.imshow("frame", frame)
-        # heatmap = cv2.applyColorMap(np.uint8(outputs * 255), cv2.COLORMAP_INFERNO)
-        # heatmap = cv2.resize(heatmap, (frame.shape[1], frame.shape[0]))
-        # cv2.imshow("heatmap", heatmap)
+        # cv2.imshow("frame", frame)
+        if save_video:
+            frame = cv2.resize(frame, (640, 480))
+            out.write(frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
+            out.release()
             break
+    out.release()
 
 
 if __name__ == "__main__":
@@ -84,6 +91,16 @@ if __name__ == "__main__":
         default=False,
         help="Use GPU for inference",
     )
+    parser.add_argument(
+        "--save_video",
+        type=bool,
+        default=False,
+        help="Save the output video",
+    )
+    
     args = parser.parse_args()
 
-    run_model(args.arc, args.run_name, args.source, args.video_path)
+    run_model(args.arc, args.run_name, args.source, args.video_path, args.use_gpu, args.save_video)
+
+# example usage:
+# python run_model.py --arc ImageReducer_bounded_grayscale --run_name run_2 --source video --video_path samples/underwater_drone_sample.mp4 --use_gpu True --save_video True

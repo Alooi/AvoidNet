@@ -59,12 +59,19 @@ def test(batch_size, num_avg, arc, run_name, use_gpu=False):
     # show all of the batch images and masks on the same figure
     fig, ax = plt.subplots(batch_size, 3, figsize=(15, 15))
     for i in range(batch_size):
-        ax[i, 0].imshow(images[i].permute(1, 2, 0))
+        image_np = images[i].permute(1, 2, 0).numpy()
+        mask_np = masks[i].permute(1, 2, 0).numpy()
+        output_np = outputs[i].permute(1, 2, 0).numpy()
+        
+        ax[i, 0].imshow(image_np)
         ax[i, 0].set_title("Image")
-        ax[i, 1].imshow(masks[i].permute(1, 2, 0))
+        plt.imsave(f"results/{arc}_{run_name}_{i}_image.png", image_np)
+        ax[i, 1].imshow(mask_np)
         ax[i, 1].set_title("Mask")
-        ax[i, 2].imshow(outputs[i].permute(1, 2, 0))
+        plt.imsave(f"results/{arc}_{run_name}_{i}_mask.png", mask_np.squeeze(), cmap='gray')
+        ax[i, 2].imshow(output_np)
         ax[i, 2].set_title("Prediction")
+        plt.imsave(f"results/{arc}_{run_name}_{i}.png", output_np.squeeze(), cmap='gray')
     plt.show()
 
 
@@ -105,3 +112,6 @@ if __name__ == "__main__":
 
     # test the model
     test(args.batch_size, args.num_average, args.arc, args.run_name, args.use_gpu)
+
+# example usage
+# python test.py --batch_size 4 --num_average 100 --run_name image_reducer_v2 --arc ImageReducer --use_gpu False

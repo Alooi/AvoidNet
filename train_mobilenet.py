@@ -4,6 +4,7 @@ from torch import nn, optim
 from dataset import SUIM, SUIM_grayscale
 import argparse
 from avoid_net import get_model
+from torchvision.models.segmentation import lraspp_mobilenet_v3_large
 
 
 def progress_bar(curr_epoch, loss, num_epochs, data_len, batch_size, bar_length):
@@ -21,7 +22,24 @@ def train_model(batch_size, num_epochs, arc, run_name):
         f"Training {arc}_{run_name} for {num_epochs} epochs with batch size {batch_size}"
     )
     # import the model
-    model = get_model(arc)
+    model = lraspp_mobilenet_v3_large(num_classes=1)
+    
+    
+    class custom_backbone(nn.Module):
+        def __init__(self):
+            super(custom_backbone, self).__init__()
+            self.model = lraspp_mobilenet_v3_large(num_classes=1)
+            # Modify the first conv layer to accept 1 channel instead of 3
+            self.model.backbone.low_level_features[0][0] = nn.Conv2d(1, 16, kernel_size=3, stride=2, padding=1, bias=False)
+
+        def forward(self, x):
+            return self.model(x)
+
+    model = custom_backbone()
+    
+    # print the first layer of the model
+    print(model)
+    
 
     # Prepare your own dataset
     dataset = SUIM_grayscale("/media/ali/New Volume/Datasets/train_val")
@@ -48,6 +66,7 @@ def train_model(batch_size, num_epochs, arc, run_name):
             outputs = model(images)
             # normalize the output to be between 0 and 1
             # Calculate the loss
+            outputs = nn.functional.interpolate(outputs["out"], size=(32, 32), mode="bilinear")
             loss = criterion(outputs, masks)
             # Backward and optimize
             optimizer.zero_grad()
@@ -106,4 +125,4 @@ if __name__ == "__main__":
     train_model(args.batch_size, args.num_epochs, args.arc, args.run_name)
 
 # example usage:
-# python train.py --batch_size 64 --num_epochs 10 --run_name run_1 --arc lr_mobilenet_v3_large
+# python train_mobilenet.py --batch_size 64 --num_epochs 10 --run_name run_1 --arc lr_mobilenet_v3_large

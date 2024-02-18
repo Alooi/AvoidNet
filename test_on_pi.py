@@ -8,17 +8,28 @@ from dataset import SUIM, SUIM_grayscale
 import time
 from avoid_net import get_model
 import argparse
+from torch.utils import mkldnn as mkldnn
+
+# Enable MKL-DNN backend
+torch.backends.mkldnn.enabled = False
 
 
-def test(batch_size, num_avg, arc, run_name, use_gpu=False):
+print(
+    f"MKL-DNN status: {torch.backends.mkldnn.enabled}, number of threads: {torch.get_num_threads()}"
+)
+
+
+def test(batch_size, num_avg, arc, run_name):
     model = get_model(arc)
-    model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
+    model.load_state_dict(
+        torch.load(f"models/{arc}_{run_name}.pth", map_location=torch.device("cpu"))
+    )
 
     # Prepare your own dataset
     dataset = SUIM_grayscale("/media/ali/New Volume/Datasets/TEST")
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
+    device = torch.device("cpu")
     print(f"Testing on: {device}")
     model.to(device)
     model.eval()
@@ -26,6 +37,7 @@ def test(batch_size, num_avg, arc, run_name, use_gpu=False):
     # load images and masks
     images, masks = next(iter(dataloader))
     images = images.to(device)
+    print(f"images shapes {images.shape}")
 
     # forward pass
     tic = time.time()
@@ -106,16 +118,10 @@ if __name__ == "__main__":
         default="ImageReducer",
         help="Name of the model architecture",
     )
-    parser.add_argument(
-        "--use_gpu",
-        type=bool,
-        default=False,
-        help="Use GPU for testing",
-    )
     args = parser.parse_args()
 
     # test the model
-    test(args.batch_size, args.num_average, args.arc, args.run_name, args.use_gpu)
+    test(args.batch_size, args.num_average, args.arc, args.run_name)
 
 # example usage
-# python test.py --batch_size 4 --num_average 100 --run_name image_reducer_v2 --arc ImageReducer --use_gpu False
+# python test_on_pi.py --batch_size 4 --num_average 100 --run_name run_2 --arc ImageReducer_bounded_grayscale

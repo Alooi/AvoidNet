@@ -8,6 +8,7 @@ from dataset import SUIM, SUIM_grayscale
 from PIL import Image
 import numpy as np
 from draw_obsticle import draw_red_squares
+from trajectory import determain_trajectory
 
 
 def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=False):
@@ -49,7 +50,13 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
         frame = draw_red_squares(frame, outputs, 0.5)
-        # cv2.imshow("frame", frame)
+        obticale, new_trej = determain_trajectory(outputs)
+        # put text on the to pleft corner of the frame
+        if obticale:
+            cv2.putText(frame, f"Obstacle {new_trej}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(frame, "No Obstacle", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.imshow("frame", frame)
         if save_video:
             frame = cv2.resize(frame, (640, 480))
             out.write(frame)

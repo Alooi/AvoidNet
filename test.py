@@ -53,6 +53,23 @@ def test(batch_size, num_avg, arc, run_name, use_gpu=False):
     MSE = nn.MSELoss()
     MSE_loss = MSE(outputs, masks)
     print(f"-- MSE loss: {MSE_loss}")
+    
+    # calculate the false positive and false negative
+    TP = torch.sum(outputs * masks)
+    FP = torch.sum(outputs * (1 - masks))
+    FN = torch.sum((1 - outputs) * masks)
+    TN = torch.sum((1 - outputs) * (1 - masks))
+    
+    # convvert to precentage
+    TP = TP / (TP + FP + FN + TN)
+    FP = FP / (TP + FP + FN + TN)
+    FN = FN / (TP + FP + FN + TN)
+    TN = TN / (TP + FP + FN + TN)
+    
+    print(f"-- True Positive: {TP}")
+    print(f"-- False Positive: {FP}")
+    print(f"-- False Negative: {FN}")
+    print(f"-- True Negative: {TN}")
 
     # # show the first batch of images and masks and predictions side by side on the same figure
 
@@ -72,7 +89,7 @@ def test(batch_size, num_avg, arc, run_name, use_gpu=False):
         ax[i, 2].imshow(output_np)
         ax[i, 2].set_title("Prediction")
         plt.imsave(f"results/{arc}_{run_name}_{i}.png", output_np.squeeze(), cmap='gray')
-    plt.show()
+    # plt.show()
 
 
 if __name__ == "__main__":
@@ -114,4 +131,4 @@ if __name__ == "__main__":
     test(args.batch_size, args.num_average, args.arc, args.run_name, args.use_gpu)
 
 # example usage
-# python test.py --batch_size 4 --num_average 100 --run_name image_reducer_v2 --arc ImageReducer --use_gpu False
+# python test.py --batch_size 4 --num_average 100 --run_name bounded_grayscale_run_2 --arc ImageReducer --use_gpu False

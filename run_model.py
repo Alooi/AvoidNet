@@ -26,12 +26,17 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
     # read from source using opencv
     if source == "webcam":
         cap = cv2.VideoCapture(0)
+        output_name = "webcam"
+
     elif source == "video":
         cap = cv2.VideoCapture(video_path)
-        
+        output_name = video_path.split("/")[-1].split(".")[0]
+    size = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    print(f"Video size: {int(size[0])}x{int(size[1])}")
+
     if save_video:
         out = cv2.VideoWriter(
-            "results/output.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (640, 480)
+            f"results/{output_name}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (int(size[0]),int(size[1]))
         )
 
     while True:
@@ -49,7 +54,7 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         outputs = outputs[0].permute(1, 2, 0)
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
-        frame = draw_red_squares(frame, outputs, 0.5)
+        frame = draw_red_squares(frame, outputs, 0.4)
         obticale, new_trej = determain_trajectory(outputs)
         # put text on the to pleft corner of the frame
         if obticale:
@@ -58,7 +63,7 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
             cv2.putText(frame, "No Obstacle", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
         cv2.imshow("frame", frame)
         if save_video:
-            frame = cv2.resize(frame, (640, 480))
+            frame = cv2.resize(frame, (int(size[0]), int(size[1])))
             out.write(frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             out.release()

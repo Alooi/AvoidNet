@@ -32,11 +32,17 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         cap = cv2.VideoCapture(video_path)
         output_name = video_path.split("/")[-1].split(".")[0]
     size = cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    save_size = (1920, 1080)
     print(f"Video size: {int(size[0])}x{int(size[1])}")
+    print(f"Video save_size: {save_size}")
+    frame_rate = cap.get(cv2.CAP_PROP_FPS)
 
     if save_video:
         out = cv2.VideoWriter(
-            f"results/{output_name}.mp4", cv2.VideoWriter_fourcc(*"mp4v"), 30, (int(size[0]),int(size[1]))
+            f"results/{output_name}.mp4",
+            cv2.VideoWriter_fourcc(*"mp4v"),
+            frame_rate,
+            (int(save_size[0]), int(save_size[1])),
         )
 
     while True:
@@ -45,6 +51,8 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         if not ret:
             break
         # prepare the frame for inference
+        if size > save_size:
+            frame = cv2.resize(frame, (int(save_size[0]), int(save_size[1])))
         frame_tensor = Image.fromarray(frame)
         frame_tensor = image_transform(frame_tensor).to(device).unsqueeze(0)
         outputs = model(frame_tensor)
@@ -55,15 +63,23 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
         frame = draw_red_squares(frame, outputs, 0.4)
-        obticale, new_trej = determain_trajectory(outputs)
+        obstacle, new_trej = determain_trajectory(outputs)
         # put text on the to pleft corner of the frame
-        if obticale:
-            cv2.putText(frame, f"Obstacle {new_trej}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        if obstacle:
+            cv2.putText(frame, f"Obstacle!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, f"Turn {new_trej}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+            # draw an arrow in the middle of the frame to indicate the direction
+            if new_trej == "left":
+                cv2.arrowedLine(frame, (int(size[0] / 2), int(size[1] / 2)), (int(size[0] / 2) - 100, int(size[1] / 2)), (0, 255, 255), 24)
+            elif new_trej == "right":
+                cv2.arrowedLine(frame, (int(size[0] / 2), int(size[1] / 2)), (int(size[0] / 2) + 100, int(size[1] / 2)), (0, 255, 255), 24)
+            elif new_trej == "up":
+                cv2.arrowedLine(frame, (int(size[0] / 2), int(size[1] / 2)), (int(size[0] / 2), int(size[1] / 2) - 100), (0, 255, 255), 24)
         else:
-            cv2.putText(frame, "No Obstacle", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, "Path Clear!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
         cv2.imshow("frame", frame)
         if save_video:
-            frame = cv2.resize(frame, (int(size[0]), int(size[1])))
+            # frame = cv2.resize(frame, (int(save_size[0]), int(save_size[1])))
             out.write(frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             out.release()
@@ -109,10 +125,10 @@ if __name__ == "__main__":
         default=False,
         help="Save the output video",
     )
-    
+
     args = parser.parse_args()
 
     run_model(args.arc, args.run_name, args.source, args.video_path, args.use_gpu, args.save_video)
 
 # example usage:
-# python run_model.py --arc ImageReducer_bounded_grayscale --run_name run_2 --source video --video_path samples/underwater_drone_sample.mp4 --use_gpu True --save_video True
+# python run_model.py --arc ImageReducer_bounded_grayscale --run_name run_2 --source video --video_path vlogs/output_2024-05-27_19-49-32.mp4 --use_gpu True --save_video True

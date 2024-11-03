@@ -12,6 +12,7 @@ from trajectory import determain_trajectory
 
 
 def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=False):
+    threshold = 0.7
     model = get_model(arc)
     model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
 
@@ -62,8 +63,8 @@ def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=
         outputs = outputs[0].permute(1, 2, 0)
         outputs = np.array(outputs)  # Convert to numpy array
         # show the output
-        frame = draw_red_squares(frame, outputs, 0.4)
-        obstacle, new_trej = determain_trajectory(outputs)
+        frame = draw_red_squares(frame, outputs, threshold)
+        obstacle, new_trej = determain_trajectory(outputs, threshold=threshold)
         # put text on the to pleft corner of the frame
         if obstacle:
             cv2.putText(frame, f"Obstacle!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)

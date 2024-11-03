@@ -1,6 +1,8 @@
 import ast
 import matplotlib.pyplot as plt
 
+list_of_keys_to_dot = ["roll_output", "pitch_output", "yaw_output", "depth_output",]
+
 def read_and_process_file(file_path):
     list_of_dicts = []
     with open(file_path, "r") as file:
@@ -25,19 +27,25 @@ def plot_data(data, list_to_plot):
     for key in list_to_plot:
         read_dict[key] = [data_dict[key] for data_dict in data]
 
-        plt.plot(read_dict[key], label=key)
+        if key in list_of_keys_to_dot:
+            plt.plot(read_dict[key], label="elevons angle", linestyle='--')
+        else:
+            if key == "roll":
+                plt.plot(read_dict[key], label="vehicle roll angle", linestyle='-')
+            elif key == "pitch":
+                plt.plot(read_dict[key], label="vehicle pitch angle", linestyle='-')
 
     # create a line at the bottom if the obstacle direction is 'left'
     for i, [there_is, direction] in enumerate(obstacle_interrupt):
         if there_is:
             if direction == "left":
-                plt.axvline(x=i, ymin=0, ymax=0.1, color="red", linestyle="-")
+                plt.axvline(x=i, ymin=0, ymax=0.05, color="red", linestyle="-")
             elif direction == "right":
-                plt.axvline(x=i, ymin=0, ymax=0.1, color="blue", linestyle="-")
+                plt.axvline(x=i, ymin=0, ymax=0.05, color="blue", linestyle="-")
             elif direction == "up":
-                plt.axvline(x=i, ymin=0, ymax=0.1, color="green", linestyle="-")
+                plt.axvline(x=i, ymin=0, ymax=0.05, color="green", linestyle="-")
     plt.legend()
-    plt.xlabel('Time')
+    plt.xlabel('Frames')
     plt.ylabel('Angle')
     plt.title('sensor data vs time')
     plt.show()
@@ -45,6 +53,6 @@ def plot_data(data, list_to_plot):
 # Replace 'your_file_path.txt' with the actual path to your text file
 data = read_and_process_file("vlogs/2024-05-27_19-49-32_stats.txt")
 
-plot_data(data, ["roll", "roll_output"])
+plot_data(data, ["roll", "pitch"])
 
 # TODO attach the plot to the video and make a moving line to indicate when it is in the water and when it is not

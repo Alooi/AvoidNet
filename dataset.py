@@ -135,8 +135,24 @@ class SUIM_grayscale(Dataset):
 
         return image, mask
 
-    def get_transform(self):
-        return self.transform
+    @classmethod
+    def get_transform(cls):
+        return transforms.Compose(
+            [
+                Resize([155, 155], interpolation=InterpolationMode.BILINEAR),
+                Grayscale(num_output_channels=1),
+                ToTensor(),
+                Normalize(
+                    mean=[0.5],
+                    std=[0.5],
+                ),
+            ]
+        )
 
-    def get_mask_transform(self):
-        return self.mask_transform
+    @classmethod
+    def get_mask_transform(cls):
+        return transforms.Compose(
+            [
+                ToTensor(),
+            ]
+        )

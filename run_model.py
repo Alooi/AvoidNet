@@ -14,7 +14,8 @@ from trajectory import determain_trajectory
 def run_model(arc, run_name, source, video_path=None, use_gpu=False, save_video=False):
     threshold = 0.7
     model = get_model(arc)
-    model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth"))
+    model.load_state_dict(torch.load(f"models/{arc}_{run_name}.pth", map_location=torch.device('cpu')))
+
 
     device = torch.device("cuda" if torch.cuda.is_available() and use_gpu else "cpu")
     print(f"Running on: {device}...")
